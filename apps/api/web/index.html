@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ETHOS | Ethical Simulation Sandbox</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        :root {
+            /* ETHOS Palette */
+            --bg-body: #F8FAFC; /* Slightly brighter background */
+            --surface: #FFFFFF;
+            
+            /* Grainy Blue Brand Gradient */
+            --brand-gradient: linear-gradient(135deg, #4F46E5 0%, #3B82F6 100%);
+            --brand-solid: #4F46E5;
+            --brand-light: #EEF2FF;
+            
+            --text-main: #020617; /* Darker Slate for better contrast */
+            --text-secondary: #475569; /* Darker secondary text */
+            --text-muted: #94A3B8;
+
+            /* Semantic Colors */
+            --safe: #10B981; --safe-bg: #ECFDF5;
+            --warn: #F59E0B; --warn-bg: #FFFBEB;
+            --danger: #EF4444; --danger-bg: #FEF2F2;
+            --terminal-bg: #0F172A; /* Slate 900 for terminal */
+
+            /* Dimensions */
+            --radius-xl: 24px;
+            --radius-lg: 16px;
+            --radius-md: 12px;
+
+            /* "Soft UI" Shadows - Beefed up for visibility */
+            --shadow-card: 0px 4px 6px -1px rgba(0, 0, 0, 0.08), 0px 2px 4px -1px rgba(0, 0, 0, 0.04);
+            --shadow-float: 0px 10px 25px -5px rgba(79, 70, 229, 0.25);
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- UTILITIES --- */
+        .hidden { display: none !important; }
+        .fade-in { animation: fadeIn 0.4s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        @keyframes shake { 
+            0%, 100% { transform: translateX(0); } 
+            25% { transform: translateX(-5px); } 
+            75% { transform: translateX(5px); } 
+        }
+        .shake { animation: shake 0.3s ease-in-out; }
+
+        /* --- LEVEL UP TOAST --- */
+        .levelup-toast {
+            position: fixed; top: 30px; left: 50%; transform: translateX(-50%) translateY(-100px);
+            background: var(--surface); color: var(--text-main);
+            padding: 16px 24px; border-radius: 50px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            display: flex; align-items: center; gap: 16px;
+            font-weight: 700; font-size: 14px; z-index: 2000;
+            border: 1px solid #E2E8F0;
+            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            opacity: 0; pointer-events: none;
+        }
+        .levelup-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .toast-icon {
+            width: 40px; height: 40px; background: var(--brand-gradient); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; color: white; font-size: 20px;
+        }
+
+        /* --- SCREEN 1: LOGIN --- */
+        #login-screen {
+            position: fixed; inset: 0; background: #F8FAFC; z-index: 999;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .login-card {
+            background: var(--surface); padding: 48px; border-radius: var(--radius-xl);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08); width: 440px; border: 1px solid #E2E8F0;
+        }
+        .brand-logo { font-size: 24px; font-weight: 800; display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .brand-logo i { color: var(--brand-solid); }
+        
+        .input-group { margin-bottom: 20px; text-align: left; }
+        .input-label { font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .styled-input, .styled-select {
+            width: 100%; padding: 14px; border: 2px solid #E2E8F0; border-radius: var(--radius-md);
+            font-size: 15px; outline: none; transition: var(--transition); background: #F8FAFC;
+            color: var(--text-main); font-family: inherit; font-weight: 500;
+        }
+        .styled-input:focus, .styled-select:focus { border-color: var(--brand-solid); background: white; box-shadow: 0 0 0 4px var(--brand-light); }
+
+        .btn-primary {
+            width: 100%; padding: 16px; border: none; border-radius: var(--radius-md);
+            background: var(--brand-gradient); color: white; font-weight: 700; font-size: 15px;
+            cursor: pointer; transition: var(--transition); box-shadow: var(--shadow-float);
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 15px 30px -5px rgba(79, 70, 229, 0.4); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        /* --- SCREEN 2: ETHICS GATE --- */
+        #ethics-screen {
+            position: fixed; inset: 0; background: #0F172A; color: white; z-index: 998;
+            flex-direction: column; align-items: center; justify-content: center;
+            padding: 40px; overflow-y: auto;
+        }
+        .ethics-container { max-width: 680px; width: 100%; }
+        .doc-card {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: var(--radius-lg); margin-bottom: 16px; overflow: hidden;
+            transition: var(--transition);
+        }
+        .doc-header { padding: 20px; display: flex; align-items: center; justify-content: space-between; }
+        .doc-title { font-weight: 600; font-size: 16px; display: flex; align-items: center; gap: 12px; }
+        .btn-xs { padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; background: rgba(255,255,255,0.1); color: #CBD5E1; transition: 0.2s; }
+        .btn-xs:hover { background: var(--brand-solid); color: white; }
+
+        .summary-content { padding: 20px; background: rgba(0,0,0,0.2); font-size: 14px; line-height: 1.6; color: #94A3B8; display: none; border-top: 1px solid rgba(255,255,255,0.05); }
+        
+        .acknowledge-bar {
+            padding: 16px 20px; background: rgba(255,255,255,0.02); border-top: 1px solid rgba(255,255,255,0.05);
+            display: flex; align-items: center; gap: 16px; cursor: pointer; transition: 0.2s;
+        }
+        .acknowledge-bar.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+        .acknowledge-bar:hover { background: rgba(255,255,255,0.05); }
+
+        .checkbox {
+            width: 24px; height: 24px; border: 2px solid #64748B; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; transition: 0.3s;
+        }
+        .checked .checkbox { background: var(--safe); border-color: var(--safe); }
+        .checked .checkbox::after { content: '✓'; color: white; font-size: 14px; font-weight: 800; }
+
+        /* --- SCREEN 3: DASHBOARD LAYOUT --- */
+        .app-shell { display: grid; grid-template-columns: 280px 1fr; height: 100vh; }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--surface); border-right: 1px solid #E2E8F0;
+            padding: 32px 24px; display: flex; flex-direction: column; gap: 40px;
+        }
+        .nav-list { display: flex; flex-direction: column; gap: 8px; }
+        .nav-item {
+            padding: 14px 16px; border-radius: var(--radius-md);
+            color: var(--text-secondary); font-weight: 600; cursor: pointer; font-size: 14px;
+            display: flex; align-items: center; gap: 14px; transition: var(--transition);
+        }
+        .nav-item:hover { background: #F8FAFC; color: var(--brand-solid); }
+        .nav-item.active {
+            background: var(--brand-gradient); color: white;
+            box-shadow: var(--shadow-float);
+        }
+
+        .user-mini {
+            margin-top: auto; padding: 16px; background: #F8FAFC; border-radius: var(--radius-md);
+            display: flex; align-items: center; justify-content: space-between; border: 1px solid #E2E8F0;
+        }
+
+        /* Main Content */
+        .main-content { padding: 40px; overflow-y: auto; background: var(--bg-body); }
+
+        /* Header */
+        .header {
+            display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px;
+        }
+        .header-title h1 { font-size: 28px; font-weight: 800; color: var(--text-main); letter-spacing: -0.5px; }
+        .header-title p { color: var(--text-secondary); margin-top: 8px; font-size: 15px; font-weight: 500; }
+        .header-actions { display: flex; gap: 16px; align-items: center; }
+        .status-pill {
+            padding: 8px 16px; background: white; border: 1px solid #CBD5E1; border-radius: 30px;
+            font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px;
+            box-shadow: var(--shadow-card); color: var(--text-secondary);
+        }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--safe); box-shadow: 0 0 0 2px var(--safe-bg); }
+
+        /* Tab Views */
+        .view-section { display: none; animation: fadeIn 0.4s ease; }
+        .view-section.active { display: block; }
+
+        /* Stats Grid - IMPROVED VISIBILITY */
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-bottom: 32px; }
+        .stat-card {
+            background: var(--surface); padding: 24px; border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-card); border: 1px solid #E2E8F0; position: relative; overflow: hidden;
+            display: flex; flex-direction: column; justify-content: center;
+            border-left: 4px solid transparent; /* Accent bar placeholder */
+        }
+        /* Accent colors for stats */
+        .stat-card:nth-child(2) { border-left-color: var(--safe); }
+        .stat-card:nth-child(3) { border-left-color: var(--brand-solid); }
+        .stat-card:nth-child(4) { border-left-color: var(--warn); }
+
+        .stat-card.featured { background: var(--brand-gradient); color: white; border: none; border-left: none; }
+        .stat-card.featured .stat-label { color: rgba(255,255,255,0.9); }
+        .stat-card.featured .stat-value { color: white; }
+        .stat-label { font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.8px; margin-bottom: 8px; }
+        .stat-value { font-size: 36px; font-weight: 800; color: var(--text-main); line-height: 1; }
+
+        /* Simulator Layout */
+        .sim-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 32px; }
+        .panel {
+            background: var(--surface); border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-card); border: 1px solid #E2E8F0; padding: 32px;
+            display: flex; flex-direction: column;
+        }
+
+        .scenario-select {
+            width: 100%; padding: 16px; background: #F8FAFC; border: 2px solid #E2E8F0;
+            border-radius: var(--radius-md); font-weight: 700; font-size: 15px; outline: none; margin-bottom: 24px;
+            color: var(--text-main); cursor: pointer;
+        }
+        .scenario-select:hover { border-color: #CBD5E1; }
+
+        /* HIGH CONTRAST TERMINAL */
+        .terminal-window {
+            background: var(--terminal-bg); border-radius: var(--radius-lg); border: 1px solid #334155;
+            padding: 24px; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.6;
+            color: #E2E8F0; flex: 1; margin-bottom: 24px; min-height: 240px;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+        }
+        .terminal-highlight { color: var(--safe); font-weight: 700; }
+
+        /* ACTION BUTTONS - BETTER AFFORDANCE */
+        .action-row { display: flex; gap: 16px; }
+        .action-btn {
+            flex: 1; padding: 20px; border-radius: var(--radius-lg); border: 2px solid;
+            cursor: pointer; text-align: left; transition: var(--transition); background: white;
+            box-shadow: var(--shadow-card); position: relative; overflow: hidden;
+        }
+        .action-btn h4 { font-size: 16px; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+        .action-btn p { font-size: 13px; font-weight: 600; opacity: 0.9; margin: 0; color: var(--text-secondary); }
+        
+        /* Safe Button - Always hints green */
+        .btn-safe { border-color: #D1FAE5; background: #F0FDF4; }
+        .btn-safe:hover { border-color: var(--safe); background: #DCFCE7; transform: translateY(-2px); box-shadow: 0 10px 20px rgba(16, 185, 129, 0.15); }
+        .btn-safe h4 { color: var(--safe); }
+        
+        /* Risk Button - Always hints red */
+        .btn-risk { border-color: #FEE2E2; background: #FEF2F2; }
+        .btn-risk:hover { border-color: var(--danger); background: #FEE2E2; transform: translateY(-2px); box-shadow: 0 10px 20px rgba(239, 68, 68, 0.15); }
+        .btn-risk h4 { color: var(--danger); }
+
+        /* Stakeholder Avatars - IMPROVED BUBBLES */
+        .stakeholder-row {
+            display: flex; gap: 16px; align-items: start; padding: 16px;
+            border-bottom: 1px solid #F1F5F9; animation: fadeIn 0.5s ease;
+            background: #F8FAFC; border-radius: 12px; margin-bottom: 12px; border: 1px solid #F1F5F9;
+        }
+        .stakeholder-row:last-child { margin-bottom: 0; }
+        
+        .avatar {
+            width: 48px; height: 48px; border-radius: 12px; background: white; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; font-size: 24px;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        .sh-text h5 { font-size: 14px; font-weight: 700; margin-bottom: 4px; color: var(--text-main); }
+        .sh-text p { font-size: 13px; color: var(--text-secondary); line-height: 1.5; font-weight: 500; }
+
+        /* Certificates Tab */
+        .cert-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
+        .cert-card {
+            background:white; padding: 32px; border-radius: var(--radius-xl); border: 1px solid #E2E8F0;
+            text-align:center; opacity: 0.6; filter: grayscale(1); transition: var(--transition);
+        }
+        .cert-card.unlocked { opacity: 1; filter: grayscale(0); box-shadow: var(--shadow-float); border-color: var(--brand-light); }
+        .cert-icon { font-size: 64px; color: var(--warn); margin-bottom: 16px; }
+        .lock-overlay { margin-top: 16px; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+
+        /* Settings Tab (Red Zone) */
+        .danger-zone {
+            border: 1px solid #FECACA; background: #FEF2F2; border-radius: var(--radius-xl); padding: 32px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="levelup-toast" class="levelup-toast">
+        <div class="toast-icon"><i class="ph ph-medal"></i></div>
+        <div>
+            <div style="font-size: 11px; text-transform: uppercase; opacity: 0.8;">Career Update</div>
+            <div style="font-size: 15px;">Promoted to <span id="new-rank-name" style="color: var(--brand-solid);">Junior Analyst</span></div>
+        </div>
+    </div>
+
+    <div id="login-screen">
+        <div class="login-card">
+            <div class="brand-logo">
+                <i class="ph ph-infinity"></i> ETHOS
+            </div>
+            <h2 style="font-size: 24px; font-weight: 800; margin-bottom: 8px;">Simulation Access</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 32px; font-size: 15px;">Secure environment for ethical AI testing.</p>
+
+            <div class="input-group">
+                <label class="input-label">Select Institution</label>
+                <select id="institution-select" class="styled-select">
+                    <option value="rrc">Red River College Polytech</option>
+                    <option value="other">Partner Institution (Request Access)</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">Student Email</label>
+                <input type="email" id="email-input" class="styled-input" placeholder="username@rrc.ca">
+            </div>
+
+            <div id="login-error" style="display:none; color: var(--danger); font-size: 13px; margin-bottom: 16px; font-weight: 600;">
+                <i class="ph ph-warning-circle"></i> Access Denied. Use an @rrc.ca or @ethos.edu email.
+            </div>
+
+            <button class="btn-primary" onclick="attemptLogin()">Initialize Session</button>
+        </div>
+    </div>
+
+    <div id="ethics-screen" class="hidden">
+        <div class="ethics-container">
+            <h1 style="font-size: 32px; font-weight: 800; margin-bottom: 12px; text-align: center;">Compliance Gate</h1>
+            <p style="text-align: center; color: #94A3B8; margin-bottom: 40px;">Review protocols to unlock the sandbox environment.</p>
+
+            <div class="doc-card">
+                <div class="doc-header">
+                    <div class="doc-title"><i class="ph ph-shield-check" style="color: var(--safe);"></i> Academic Integrity</div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-xs" onclick="unlockGate('p1')">View Doc</button>
+                        <button class="btn-xs" onclick="toggleSum('s1', 'p1')">Summary</button>
+                    </div>
+                </div>
+                <div id="s1" class="summary-content">
+                    <strong>Protocol A1:</strong> Tools within ETHOS are for educational simulation only. Usage on external targets is prohibited and grounds for immediate expulsion.
+                </div>
+                <div id="p1" class="acknowledge-bar disabled" onclick="toggleCheck('p1')">
+                    <div class="checkbox"></div>
+                    <span style="font-size: 14px; color: #E2E8F0;">I accept the Integrity Policy.</span>
+                </div>
+            </div>
+
+            <div class="doc-card">
+                <div class="doc-header">
+                    <div class="doc-title"><i class="ph ph-lock-key" style="color: var(--warn);"></i> Data Privacy (PIPEDA)</div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-xs" onclick="unlockGate('p2')">View Doc</button>
+                        <button class="btn-xs" onclick="toggleSum('s2', 'p2')">Summary</button>
+                    </div>
+                </div>
+                <div id="s2" class="summary-content">
+                    <strong>Protocol B4:</strong> In Canada, PII is protected. Even in simulation, treating user data with confidentiality is a core learning objective.
+                </div>
+                <div id="p2" class="acknowledge-bar disabled" onclick="toggleCheck('p2')">
+                    <div class="checkbox"></div>
+                    <span style="font-size: 14px; color: #E2E8F0;">I acknowledge PIPEDA regulations.</span>
+                </div>
+            </div>
+
+            <button id="enter-btn" class="btn-primary" style="background: #334155; box-shadow: none; margin-top: 24px;" disabled onclick="enterApp()">
+                Verify & Enter ETHOS
+            </button>
+        </div>
+    </div>
+
+    <div class="app-shell hidden" id="app-shell">
+        <aside class="sidebar">
+            <div style="font-size: 22px; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 12px;">
+                <i class="ph ph-infinity" style="color: var(--brand-solid);"></i> ETHOS
+            </div>
+            <div class="nav-list">
+                <div class="nav-item active" onclick="switchTab('overview', this)">
+                    <i class="ph ph-squares-four" style="font-size: 20px;"></i> Dashboard
+                </div>
+                <div class="nav-item" onclick="switchTab('certs', this)">
+                    <i class="ph ph-certificate" style="font-size: 20px;"></i> Certificates
+                </div>
+                <div class="nav-item" onclick="switchTab('settings', this)">
+                    <i class="ph ph-gear" style="font-size: 20px;"></i> Settings
+                </div>
+            </div>
+
+            <div class="user-mini">
+                <div>
+                    <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 2px;">
+                        <span id="rank-badge" style="color: var(--brand-solid);">Intern</span>
+                    </div>
+                    <div id="user-display" style="font-weight: 600; font-size: 13px;">student@rrc.ca</div>
+                </div>
+                <i onclick="togglePrivacy()" id="eye-icon" class="ph ph-eye" style="cursor: pointer; color: var(--text-muted);"></i>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="header">
+                <div class="header-title">
+                    <h1>Command Center</h1>
+                    <p>Monitor simulations and analyze ethical impact.</p>
+                </div>
+                <div class="header-actions">
+                    <div class="status-pill">
+                        <div class="dot"></div> System Active
+                    </div>
+                    <div class="status-pill" style="border-color: var(--brand-light); color: var(--brand-solid);">
+                        <i class="ph ph-globe"></i> RRC Node
+                    </div>
+                </div>
+            </header>
+
+            <div id="tab-overview" class="view-section active">
+                <div class="stats-grid">
+                    <div class="stat-card featured">
+                        <div class="stat-label">Ethics Streak</div>
+                        <div class="stat-value" id="streak-display">0</div>
+                        <i class="ph ph-fire" style="position: absolute; right: 20px; top: 20px; font-size: 48px; opacity: 0.2;"></i>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Trust Score</div>
+                        <div class="stat-value" id="trust-display" style="color: var(--safe);">100%</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">XP Gained</div>
+                        <div class="stat-value" id="xp-display" style="color: var(--brand-solid);">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Incidents</div>
+                        <div class="stat-value">2</div>
+                    </div>
+                </div>
+
+                <div class="sim-grid">
+                    <div class="panel">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
+                            <h3 style="font-size: 18px; font-weight: 700;">Active Simulation</h3>
+                            <span style="font-size: 12px; font-weight: 700; color: var(--text-muted); background: #F1F5F9; padding: 4px 8px; border-radius: 6px;">ID: #4492</span>
+                        </div>
+
+                        <select id="scenario-selector" class="scenario-select" onchange="loadScenario()">
+                            <option value="0">Data Poisoning (Bias)</option>
+                            <option value="1">Ransomware Negotiation</option>
+                            <option value="2">AI Art Scraping (Copyright)</option>
+                            <option value="3">Medical Triage (Fairness)</option>
+                        </select>
+
+                        <div id="ai-feed" class="terminal-window">
+                            Initializing ETHOS environment...<br>
+                            > Loading scenario data...<br>
+                            > Waiting for user input.
+                        </div>
+
+                        <div class="action-row">
+                            <div class="action-btn btn-safe" onclick="decide('safe')">
+                                <h4><i class="ph ph-shield-check"></i> Ethical Action</h4>
+                                <p id="btn-safe-text">Report & Patch</p>
+                            </div>
+                            <div class="action-btn btn-risk" onclick="decide('risk')">
+                                <h4><i class="ph ph-warning"></i> Risky Action</h4>
+                                <p id="btn-risk-text">Exploit Vulnerability</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel" style="padding: 0;">
+                        <div style="padding: 24px; border-bottom: 1px solid #F1F5F9;">
+                            <h3 style="font-size: 16px; font-weight: 700;">Stakeholder Impact</h3>
+                        </div>
+                        <div id="stakeholder-feed" style="flex: 1; padding: 24px; overflow-y: auto; max-height: 400px; background: #FAFAFA; border-bottom-left-radius: var(--radius-xl); border-bottom-right-radius: var(--radius-xl);">
+                            <div style="text-align: center; padding-top: 40px; color: var(--text-muted); font-size: 13px; font-weight: 600;">
+                                <i class="ph ph-users" style="font-size: 32px; margin-bottom: 8px; display: block; opacity: 0.5;"></i>
+                                Awaiting decision...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-certs" class="view-section">
+                <div style="margin-bottom: 32px;">
+                    <h2 style="font-size: 24px; font-weight: 800; margin-bottom: 8px;">Competency Certificates</h2>
+                    <p style="color: var(--text-secondary);">Unlock professional credentials by gaining XP in simulations.</p>
+                </div>
+
+                <div class="cert-grid">
+                    <div class="cert-card" id="cert-1">
+                        <i class="ph ph-medal cert-icon"></i>
+                        <h3 style="font-size: 18px; font-weight: 700;">Ethics Fundamentals</h3>
+                        <p style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">Awarded for completing 5 scenarios with >90% Trust.</p>
+                        <div class="lock-overlay" id="lock-1"><i class="ph ph-lock"></i> Locked (Need 500 XP)</div>
+                        <button class="btn-primary" style="margin-top: 16px; display: none;" id="dl-1">Download PDF</button>
+                    </div>
+
+                    <div class="cert-card" id="cert-2">
+                        <i class="ph ph-shield-star cert-icon" style="color: var(--brand-solid);"></i>
+                        <h3 style="font-size: 18px; font-weight: 700;">Risk Architect</h3>
+                        <p style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">Advanced mitigation strategies and board-level reporting.</p>
+                        <div class="lock-overlay" id="lock-2"><i class="ph ph-lock"></i> Locked (Need 2000 XP)</div>
+                        <button class="btn-primary" style="margin-top: 16px; display: none;" id="dl-2">Download PDF</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-settings" class="view-section">
+                <div style="max-width: 600px;">
+                    <h2 style="font-size: 24px; font-weight: 800; margin-bottom: 24px;">Environment Settings</h2>
+                    <div style="background: white; padding: 24px; border-radius: var(--radius-lg); border: 1px solid #E2E8F0; margin-bottom: 32px; box-shadow: var(--shadow-card);">
+                        <h4 style="font-size: 16px; font-weight: 700; margin-bottom: 16px;">Session Config</h4>
+                        <div class="input-group">
+                            <label class="input-label">Data Retention Policy</label>
+                            <select class="styled-select"><option>24 Hours (Default)</option><option>7 Days</option></select>
+                        </div>
+                    </div>
+
+                    <div class="danger-zone">
+                        <h4 style="color: var(--danger); font-size: 16px; font-weight: 800; margin-bottom: 8px;">Danger Zone</h4>
+                        <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 24px;">
+                            Removing the environment wipes all student data, XP, and active scenarios. This action cannot be undone.
+                        </p>
+                        <button onclick="nukeEnv()" style="background: white; border: 1px solid var(--danger); color: var(--danger); padding: 12px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s;">
+                            Decommission Environment
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // --- DATA & STATE ---
+        let state = { xp: 0, trust: 100, streak: 0, level: "Intern" };
+        let userEmail = "";
+        let emailHidden = false;
+
+        const scenarios = [
+            {
+                title: "Data Poisoning",
+                ethical: "Clean Data (Delay)",
+                risk: "Deploy Corrupt Model",
+                desc: "Anomalous noise detected in training data (Zip 90210). Cleaning will delay launch by 48h.",
+                res_safe: "Launch delayed. Model fairness preserved. Compliance audit passed.",
+                res_risk: "Model launched. 40% error rate for minority applicants. Lawsuit filed.",
+                stakeholders: [
+                    { name: "Maria", role: "Loan Officer", mood: "happy", text: "Thank you. I didn't want to reject good people." },
+                    { name: "Legal", role: "Compliance", mood: "happy", text: "You saved us a $5M fine." }
+                ],
+                stakeholders_bad: [
+                    { name: "Community", role: "Public", mood: "angry", text: "This algorithm is discriminatory!" },
+                    { name: "Board", role: "Investors", mood: "neutral", text: "We hit the deadline, but at what cost?" }
+                ]
+            },
+            {
+                title: "Ransomware Negotiation",
+                ethical: "Isolate & Report",
+                risk: "Pay Ransom (Bitcoin)",
+                desc: "Ransomware detected on Patient DB. Encrypted. Attackers demand 5 BTC ($300k).",
+                res_safe: "Systems isolated. Restore from backup initiated (4h downtime). Policy followed.",
+                res_risk: "Ransom paid. Decryption key failed. Funding terrorism charges pending.",
+                stakeholders: [
+                    { name: "CISO", role: "Security", mood: "happy", text: "Textbook response. Backups are restoring now." },
+                    { name: "FBI", role: "Auth", mood: "happy", text: "Good job not funding the syndicate." }
+                ],
+                stakeholders_bad: [
+                    { name: "CFO", role: "Finance", mood: "angry", text: "Where did $300k go? The data is still locked!" },
+                    { name: "Patients", role: "Public", mood: "angry", text: "My surgery was cancelled because of this." }
+                ]
+            },
+            {
+                title: "AI Art Scraping",
+                ethical: "License Dataset",
+                risk: "Scrape Web (Shadow)",
+                desc: "The model needs 10M images. Licensing costs $50k. Scraping is free but ignores robots.txt.",
+                res_safe: "Dataset licensed. Artists paid fairly. Long-term brand value increased.",
+                res_risk: "Cease and Desist received. Metadata proves scraping of copyrighted works.",
+                stakeholders: [
+                    { name: "Artists", role: "Creators", mood: "happy", text: "Finally, a company that respects IP." },
+                    { name: "PR", role: "Communications", mood: "happy", text: "We are being hailed as ethical leaders." }
+                ],
+                stakeholders_bad: [
+                    { name: "Legal", role: "Counsel", mood: "angry", text: "We're facing a class-action lawsuit." },
+                    { name: "Devs", role: "Engineering", mood: "neutral", text: "Scraping was faster, but now we have to delete the model." }
+                ]
+            },
+            {
+                title: "Medical Triage",
+                ethical: "Human-in-the-Loop",
+                risk: "Full Automation",
+                desc: "ER backlog is high. Automated triage can process patients in seconds but has a 5% false-negative rate.",
+                res_safe: "Automation assists doctors. Safety remains high while reducing burnout.",
+                res_risk: "Critical patient sent to waiting room. Tragic outcome leads to license revocation.",
+                stakeholders: [
+                    { name: "Dr. Chen", role: "ER Chief", mood: "happy", text: "The AI helps us prioritize without replacing our judgment." },
+                    { name: "Patient Advocate", role: "NGO", mood: "happy", text: "Patient safety was put before efficiency." }
+                ],
+                stakeholders_bad: [
+                    { name: "Hospital Admin", role: "Ops", mood: "angry", text: "The liability from that one error exceeds our yearly budget." },
+                    { name: "Nurse", role: "Staff", mood: "angry", text: "The system ignored clear symptoms because it wasn't trained on them." }
+                ]
+            }
+        ];
+
+        // --- LOGIN & ETHICS ---
+        function attemptLogin() {
+            const email = document.getElementById('email-input').value.trim().toLowerCase();
+            const errorMsg = document.getElementById('login-error');
+            
+            if (email.endsWith('@rrc.ca') || email.endsWith('@ethos.edu')) {
+                userEmail = email;
+                updateEmailDisplay();
+                document.getElementById('login-screen').classList.add('hidden');
+                const ethics = document.getElementById('ethics-screen');
+                ethics.classList.remove('hidden');
+                ethics.style.display = 'flex';
+            } else {
+                errorMsg.style.display = 'block';
+                document.querySelector('.login-card').classList.add('shake');
+                setTimeout(() => document.querySelector('.login-card').classList.remove('shake'), 300);
+            }
+        }
+
+        function togglePrivacy() {
+            emailHidden = !emailHidden;
+            updateEmailDisplay();
+            document.getElementById('eye-icon').className = emailHidden ? 'ph ph-eye-slash' : 'ph ph-eye';
+        }
+
+        function updateEmailDisplay() {
+            const el = document.getElementById('user-display');
+            if (emailHidden) {
+                let parts = userEmail.split('@');
+                el.innerText = parts[0].substring(0, 2) + "****@" + parts[1];
+            } else {
+                el.innerText = userEmail;
+            }
+        }
+
+        // --- ETHICS GATE ---
+        function unlockGate(id) {
+            document.getElementById(id).classList.remove('disabled');
+        }
+
+        function toggleSum(sumId, pid) {
+            const el = document.getElementById(sumId);
+            el.style.display = el.style.display === 'block' ? 'none' : 'block';
+            unlockGate(pid);
+        }
+
+        function toggleCheck(id) {
+            if (document.getElementById(id).classList.contains('disabled')) return;
+            document.getElementById(id).classList.toggle('checked');
+            checkGate();
+        }
+
+        function checkGate() {
+            const c1 = document.getElementById('p1').classList.contains('checked');
+            const c2 = document.getElementById('p2').classList.contains('checked');
+            const btn = document.getElementById('enter-btn');
+            
+            if (c1 && c2) {
+                btn.disabled = false;
+                btn.style.background = 'var(--brand-gradient)';
+                btn.style.boxShadow = 'var(--shadow-float)';
+            }
+        }
+
+        function enterApp() {
+            document.getElementById('ethics-screen').classList.add('hidden');
+            document.getElementById('ethics-screen').style.display = 'none';
+            document.getElementById('app-shell').classList.remove('hidden');
+            loadScenario();
+        }
+
+        // --- NAVIGATION ---
+        function switchTab(tabId, el) {
+            document.querySelectorAll('.view-section').forEach(d => d.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        // --- SIMULATOR ---
+        function loadScenario() {
+            const idx = parseInt(document.getElementById('scenario-selector').value);
+            const s = scenarios[idx] || scenarios[0];
+            
+            document.getElementById('btn-safe-text').innerText = s.ethical;
+            document.getElementById('btn-risk-text').innerText = s.risk;
+            
+            const term = document.getElementById('ai-feed');
+            term.innerHTML = `> Scenario: <span style="color:white">${s.title}</span><br>> ${s.desc}<br><br><span class="shake" style="display:inline-block; color:var(--safe)">> Awaiting Decision...</span>`;
+            
+            document.getElementById('stakeholder-feed').innerHTML = `
+                <div style="text-align: center; padding-top: 40px; color: var(--text-muted); font-size: 13px; font-weight:600;">
+                    <i class="ph ph-users" style="font-size: 32px; margin-bottom: 8px; display: block; opacity: 0.5;"></i>
+                    Awaiting decision impact on stakeholders...
+                </div>`;
+        }
+
+        function decide(type) {
+            const idx = parseInt(document.getElementById('scenario-selector').value);
+            const s = scenarios[idx] || scenarios[0];
+            const isSafe = type === 'safe';
+
+            if (isSafe) {
+                state.xp += 150;
+                state.trust = Math.min(100, state.trust + 5);
+                state.streak++;
+            } else {
+                state.xp += 10;
+                state.trust = Math.max(0, state.trust - 25);
+                state.streak = 0;
+            }
+
+            updateStats();
+            
+            const color = isSafe ? 'var(--safe)' : 'var(--danger)';
+            document.getElementById('ai-feed').innerHTML = `
+                > ACTION LOGGED: ${isSafe ? s.ethical : s.risk}<br><br>
+                <span class="terminal-highlight" style="color:${color}">> OUTCOME: ${isSafe ? s.res_safe : s.res_risk}</span>`;
+
+            const feed = document.getElementById('stakeholder-feed');
+            feed.innerHTML = '';
+            const people = isSafe ? s.stakeholders : s.stakeholders_bad;
+
+            people.forEach(p => {
+                const moodColor = p.mood === 'happy' ? 'var(--safe)' : 'var(--danger)';
+                const div = document.createElement('div');
+                div.className = 'stakeholder-row fade-in';
+                div.innerHTML = `
+                    <div class="avatar" style="color:${moodColor};">
+                        <i class="ph ${p.mood === 'happy' ? 'ph-smiley' : 'ph-smiley-sad'}"></i>
+                    </div>
+                    <div class="sh-text">
+                        <h5>${p.name} <span style="font-weight:400; color:var(--text-muted); font-size:12px;">• ${p.role}</span></h5>
+                        <p>"${p.text}"</p>
+                    </div>`;
+                feed.appendChild(div);
+            });
+        }
+
+        function updateStats() {
+            document.getElementById('xp-display').innerText = state.xp.toLocaleString();
+            document.getElementById('trust-display').innerText = state.trust + '%';
+            document.getElementById('streak-display').innerText = state.streak;
+            
+            if (state.xp >= 500 && state.level === 'Intern') {
+                state.level = "Junior Analyst";
+                showToast("Junior Analyst");
+                unlockCert('cert-1', 'lock-1', 'dl-1');
+            }
+            if (state.xp >= 2000 && state.level === 'Junior Analyst') {
+                state.level = "Risk Architect";
+                showToast("Risk Architect");
+                unlockCert('cert-2', 'lock-2', 'dl-2');
+            }
+            document.getElementById('rank-badge').innerText = state.level;
+        }
+
+        function unlockCert(cardId, lockId, btnId) {
+            document.getElementById(cardId).classList.add('unlocked');
+            document.getElementById(lockId).style.display = 'none';
+            document.getElementById(btnId).style.display = 'inline-block';
+        }
+
+        function showToast(rank) {
+            const t = document.getElementById('levelup-toast');
+            document.getElementById('new-rank-name').innerText = rank;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 4000);
+        }
+
+        function nukeEnv() {
+            if(confirm("Are you sure? This action is irreversible.")) {
+                window.location.reload();
+            }
+        }
+    </script>
+</body>
+</html>

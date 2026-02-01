@@ -1,0 +1,14 @@
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.git/
+.vscode/
+.idea/
+node_modules/
+.DS_Store
+Thumbs.db
+EOF

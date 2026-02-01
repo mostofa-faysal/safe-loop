@@ -1,0 +1,13 @@
+[project]
+name = "safeloop-api"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115.0",
+  "uvicorn>=0.30.0",
+  "pydantic>=2.7.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["safeloop_api*"]
