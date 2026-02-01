@@ -391,6 +391,29 @@
                 </div>
             </div>
 
+            <div class="policy-card" id="doc-3">
+                <div class="policy-header">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <i class="ph ph-hand-heart" style="color:#D97757; font-size:20px;"></i>
+                        <div>
+                            <strong>Indigenous Data Sov. (OCAP®)</strong>
+                            <div style="font-size:11px; color:var(--text-muted);">Ref: FNIGC / OCAP® Principles</div>
+                        </div>
+                    </div>
+                    <div class="policy-actions">
+                        <a href="https://fnigc.ca/ocap-training/" target="_blank" class="btn-small" onclick="unlockAck('doc-3', 'external')">
+                            Official Source <i class="ph ph-arrow-square-out"></i>
+                        </a>
+                        <button class="btn-small" onclick="unlockAck('doc-3', 'tldr')">TL;DR</button>
+                    </div>
+                </div>
+                <div class="policy-content" id="content-doc-3"></div>
+                <div class="ack-row" id="ack-doc-3" title="Read the document first" onclick="toggleAck('doc-3')">
+                    <div class="checkbox"></div>
+                    <span>I acknowledge OCAP® principles <i class="ph ph-lock-key" id="lock-doc-3" style="font-size:12px; margin-left:6px; color:var(--text-muted);"></i></span>
+                </div>
+            </div>
+
             <div style="display: flex; gap: 12px; margin-top: 24px; width: 100%; max-width: 400px;">
                 <button class="btn-secondary" style="font-size: 13px; padding: 12px;" onclick="showAllTLDR()">
                     <i class="ph ph-book-open"></i> Read All Summaries
@@ -628,8 +651,8 @@
             }
         };
 
-        let docStatus = { 'doc-1': false, 'doc-2': false };
-        let docCheck = { 'doc-1': false, 'doc-2': false };
+        let docStatus = { 'doc-1': false, 'doc-2': false, 'doc-3': false };
+        let docCheck = { 'doc-1': false, 'doc-2': false, 'doc-3': false };
         let realEmail = "";
         let isHidden = false;
 
@@ -752,6 +775,10 @@
                 'doc-2': {
                     tldr: `<p><strong><i class="ph ph-info"></i> Key Takeaways (PIPEDA):</strong></p><ul style="margin: 8px 0 0 16px; padding: 0;"><li><strong>Synthetic PII:</strong> All data is procedurally generated. However, you must handle it with the same confidentiality protocols as real Personally Identifiable Information.</li><li><strong>Data Retention:</strong> To ensure compliance with data minimization principles, all session data is automatically purged after 24 hours.</li></ul>`,
                     full: `<p><strong>Privacy Statement:</strong> In accordance with the Personal Information Protection and Electronic Documents Act (PIPEDA), this application minimizes data collection. No external tracking is used. User inputs are processed ephemerally and wiped daily.</p>`
+                },
+                'doc-3': {
+                    tldr: `<p><strong><i class="ph ph-info"></i> Key Takeaways (OCAP®):</strong></p><ul style="margin: 8px 0 0 16px; padding: 0;"><li><strong>Sovereignty:</strong> First Nations have ownership, control, access, and possession over data collection processes in their communities.</li><li><strong>No Extraction:</strong> Research or AI modeling involving Indigenous data cannot be conducted without explicit community consent and governance.</li></ul>`,
+                    full: `<p><strong>The OCAP® Principles:</strong> Ownership, Control, Access, and Possession. These principles assert that First Nations control data collection processes in their communities. First Nations own, protect, and control how their information is used. Access to First Nations data is important and First Nations must have access to data and information about themselves and their communities regardless of where it is currently held.</p>`
                 }
             };
 
@@ -771,7 +798,7 @@
             }
         }
 
-        function showAllTLDR() { unlockAck('doc-1', 'tldr'); unlockAck('doc-2', 'tldr'); }
+        function showAllTLDR() { unlockAck('doc-1', 'tldr'); unlockAck('doc-2', 'tldr'); unlockAck('doc-3', 'tldr'); }
 
         function toggleAck(docId) {
             if (!docStatus[docId]) return;
@@ -779,7 +806,7 @@
             const row = document.getElementById(`ack-${docId}`);
             row.classList.toggle('checked');
             const btn = document.getElementById('gate-btn');
-            if (docCheck['doc-1'] && docCheck['doc-2']) {
+            if (docCheck['doc-1'] && docCheck['doc-2'] && docCheck['doc-3']) {
                 btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; btn.style.background = 'var(--text-main)';
             } else {
                 btn.disabled = true; btn.style.opacity = '0.3'; btn.style.cursor = 'not-allowed';
