@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ETHOS | Ethical Simulation Sandbox</title>
     <link rel="icon" type="image/png" href="logo.png">
-    <link rel="apple-touch-icon" href="logo.png">
-    <link rel="icon" type="image/png" href="logo.png?v=1.0">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,7 +13,7 @@
 
     <style>
         :root {
-            /* Palette - Claude Inspired */
+            /* Palette - Claude Inspired (Monochrome) */
             --bg-body: #FAF9F6;
             --surface: #FFFFFF;
             --text-main: #111111;
@@ -121,7 +119,7 @@
         }
         .btn-secondary:hover { color: var(--text-main); }
 
-        /* --- ETHICS GATE (FIXED SCROLLING) --- */
+        /* --- ETHICS GATE --- */
         #ethics-screen {
             position: fixed; inset: 0; background: var(--surface); z-index: 998;
             overflow-y: auto; display: flex; flex-direction: column; align-items: center; 
@@ -323,7 +321,7 @@
                 <div style="font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;">Ethos Sandbox</div>
             </div>
 
-            <h1 class="login-title">Red River College Polytech</h1>
+            <h1 id="login-title" class="login-title">Red River College Polytech</h1>
             <p class="login-sub">Welcome to the Ethical AI Sandbox.<br>Please sign in to continue.</p>
 
             <div class="input-group">
@@ -332,10 +330,10 @@
             </div>
 
             <button class="btn-main" onclick="attemptLogin()">Sign In</button>
-            <button class="btn-secondary">Partner Institute Sign In</button>
+            <button class="btn-secondary" onclick="togglePartnerMode()">Partner Institute Sign In</button>
             
             <div id="login-error" style="color: var(--danger); font-size: 13px; margin-top: 16px; display: none;">
-                Please enter a valid @rrc.ca or @ethos.ca email address.
+                Please enter a valid @rrc.ca email address.
             </div>
         </div>
     </div>
@@ -471,7 +469,7 @@
                     </div>
                     <div class="stat-box">
                         <div class="stat-lbl">Active Incidents</div>
-                        <div class="stat-val">0</div>
+                        <div class="stat-val" id="incidents-display">0</div>
                     </div>
                 </div>
 
@@ -655,6 +653,7 @@
         let docCheck = { 'doc-1': false, 'doc-2': false, 'doc-3': false };
         let realEmail = "";
         let isHidden = false;
+        let isPartnerMode = false;
 
         const scenarios = [
             {
@@ -738,16 +737,47 @@
         ];
 
         // --- LOGIN ---
+        function togglePartnerMode() {
+            isPartnerMode = !isPartnerMode;
+            const title = document.getElementById('login-title');
+            const input = document.getElementById('email-input');
+            const err = document.getElementById('login-error');
+            const btn = document.querySelector('.btn-secondary');
+
+            if (isPartnerMode) {
+                title.innerText = "Partner Institute";
+                input.placeholder = "username@ethos.ca";
+                btn.innerText = "Back to RRC Polytech Sign In";
+            } else {
+                title.innerText = "Red River College Polytech";
+                input.placeholder = "username@rrc.ca";
+                btn.innerText = "Partner Institute Sign In";
+            }
+            err.style.display = 'none';
+            input.value = "";
+        }
+
         function attemptLogin() {
             const email = document.getElementById('email-input').value;
-            if(email.includes('@rrc.ca') || email.includes('@ethos.edu')) {
+            const err = document.getElementById('login-error');
+            let isValid = false;
+
+            if (isPartnerMode) {
+                if (email.endsWith('@ethos.ca')) isValid = true;
+                else err.innerText = "Partner Access Restricted: Use @ethos.ca";
+            } else {
+                if (email.endsWith('@rrc.ca')) isValid = true;
+                else err.innerText = "Access Restricted: Use @rrc.ca email.";
+            }
+
+            if (isValid) {
                 realEmail = email; 
                 document.getElementById('user-display').innerText = email;
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('ethics-screen').classList.remove('hidden');
                 document.getElementById('ethics-screen').style.display = 'flex';
             } else {
-                document.getElementById('login-error').style.display = 'block';
+                err.style.display = 'block';
             }
         }
 
@@ -806,6 +836,8 @@
             const row = document.getElementById(`ack-${docId}`);
             row.classList.toggle('checked');
             const btn = document.getElementById('gate-btn');
+            
+            // STRICT CHECK: All 3 docs must be physically checked
             if (docCheck['doc-1'] && docCheck['doc-2'] && docCheck['doc-3']) {
                 btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; btn.style.background = 'var(--text-main)';
             } else {
@@ -970,8 +1002,7 @@
             document.getElementById('xp-display').innerText = state.xp.toLocaleString();
             document.getElementById('trust-display').innerText = state.trust + '%';
             document.getElementById('streak-display').innerText = state.streak;
-            const stats = document.querySelectorAll('.stat-val');
-            if(stats[3]) stats[3].innerText = state.incidents;
+            document.getElementById('incidents-display').innerText = state.incidents;
             
             if(state.xp >= 5000) state.level = "Chief Ethics Officer";
             else if(state.xp >= 3000) state.level = "Crisis Commander";
